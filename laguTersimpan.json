@@ -1,0 +1,16 @@
+[
+    {
+        "artis": "Tulus",
+        "favorit": false,
+        "genre": "P",
+        "judul": "Interaksi",
+        "path": "music/tulus.mp3"
+    },
+    {
+        "artis": "Queen",
+        "favorit": false,
+        "genre": "R",
+        "judul": "Bohemian Rhapsody",
+        "path": "music/queen.mp3"
+    }
+]
