@@ -7,4 +7,4 @@ Anggota :
   <li>251401074	Rizqa Faiza Raihanah</li>
 </ul>
 <br>
-Judul : Karaoke Lyric Sync Player
+Judul : Just Play
