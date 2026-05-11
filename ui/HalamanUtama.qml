@@ -2,8 +2,10 @@ import QtQuick
 import QtQuick.Shapes
 import QtQuick.Layouts
 
+import "../components"
+
 Rectangle {
-    id: halaman_Utama
+    id: halaman_utama
 
     height: parent.height
     width: parent.width
@@ -17,73 +19,77 @@ Rectangle {
 
         Item { width: 1; height: 30 * root.dp }
 
-        Rectangle {
-            id: searchContainer
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 16 * root.dp
-            anchors.rightMargin: 16 * root.dp
+        Item {
+            width: parent.width
+            height: 18 * root.dp
+            Rectangle {
+                id: searchContainer
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 16 * root.dp
+                anchors.rightMargin: 16 * root.dp
+                height: 30 * root.dp
+                color: "#f5f5f5"
+                radius: 8 * root.dp
 
-            height: 40 * root.dp
-            color: "#f5f5f5"
-            radius: 8 * root.dp
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 12 * root.dp
+                    anchors.rightMargin: 12 * root.dp
+                    spacing: 8 * root.dp
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 12 * root.dp
-                anchors.rightMargin: 12 * root.dp
-                spacing: 8 * root.dp
+                    Item {
+                        Layout.preferredWidth: 24 * root.dp
+                        Layout.preferredHeight: 24 * root.dp
+                        Layout.alignment: Qt.AlignVCenter
 
-                Item {
-                    Layout.preferredWidth: 24 * root.dp
-                    Layout.preferredHeight: 24 * root.dp
-                    Layout.alignment: Qt.AlignVCenter
+                        Shape {
+                            id: searchIcon
+                            anchors.centerIn: parent
+                            width: 16 * root.dp
+                            height: 16 * root.dp
 
-                    Shape {
-                        id: searchIcon
-                        anchors.centerIn: parent
-                        width: 16 * root.dp
-                        height: 16 * root.dp
+                            ShapePath {
+                                strokeColor: "#828282"
+                                strokeWidth: 2
+                                fillColor: "transparent"
+                                capStyle: ShapePath.RoundCap
 
-                        ShapePath {
-                            strokeColor: "#828282"
-                            strokeWidth: 2
-                            fillColor: "transparent"
-                            capStyle: ShapePath.RoundCap
-
-                            PathSvg { path: "M 16 8 C 16 12.4183 12.4183 16 8 16 C 3.5817 16 0 12.4183 0 8 C 0 3.5817 3.5817 0 8 0 C 12.4183 0 16 3.5817 16 8 Z" }
-                        }
-                        ShapePath {
-                            strokeColor: "#828282"
-                            strokeWidth: 2
-                            fillColor: "transparent"
-                            capStyle: ShapePath.RoundCap
-                            PathSvg { path: "M 14 14 L 18 18" }
+                                PathSvg { path: "M 16 8 C 16 12.4183 12.4183 16 8 16 C 3.5817 16 0 12.4183 0 8 C 0 3.5817 3.5817 0 8 0 C 12.4183 0 16 3.5817 16 8 Z" }
+                            }
+                            ShapePath {
+                                strokeColor: "#828282"
+                                strokeWidth: 2
+                                fillColor: "transparent"
+                                capStyle: ShapePath.RoundCap
+                                PathSvg { path: "M 14 14 L 18 18" }
+                            }
                         }
                     }
-                }
 
-                TextInput {
-                    id: searchInput
-                    Layout.fillWidth: true
-                    height: parent.height
-                    font.family: "Inter"
-                    font.pixelSize: 14 * root.dp
-                    color: "#000000"
-                    verticalAlignment: TextInput.AlignVCenter
-                    clip: true
+                    TextInput {
+                        id: searchInput
+                        Layout.fillWidth: true
+                        height: parent.height
+                        font.family: "Inter"
+                        font.pixelSize: 14 * root.dp
+                        color: "#000000"
+                        verticalAlignment: TextInput.AlignVCenter
+                        clip: true
 
-                    Text {
-                        text: "Cari lagu atau artis..."
-                        color: "#828282"
-                        visible: !searchInput.text && !searchInput.activeFocus
-                        font: searchInput.font
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                        Text {
+                            text: "Cari lagu atau artis..."
+                            color: "#828282"
+                            visible: !searchInput.text && !searchInput.activeFocus
+                            font: searchInput.font
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
 
-                    onAccepted: {
-                        console.log("Mencari: " + text)
-                        searchInput.focus = false
+                        onAccepted: {
+                            console.log("Mencari: " + text)
+                            searchInput.focus = false
+                        }
                     }
                 }
             }
@@ -96,13 +102,13 @@ Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 16 * root.dp
 
-            height: 32 * root.dp // Tinggi pill ikut menyesuaikan layar
+            height: 32 * root.dp
             color: "transparent"
 
             Row {
                 id: layoutRow
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 8 * root.dp
+                spacing: 24 * root.dp
 
                 Repeater {
                     model: [
@@ -129,7 +135,7 @@ Rectangle {
                             spacing: 4 * root.dp
 
                             Loader {
-                                source: modelData.icon
+                                source: "../" + modelData.icon
                                 anchors.verticalCenter: parent.verticalCenter
                                 scale: 0.75 * root.dp
                             }
@@ -146,9 +152,7 @@ Rectangle {
                         MouseArea {
                             id: pillTouch
                             anchors.fill: parent
-                            onClicked: {
-                                console.log("Klik: " + modelData.name)
-                            }
+                            onClicked: myStack.push("HalamanKategori.qml", {"kategori": modelData.name})
                         }
                     }
                 }
@@ -157,7 +161,7 @@ Rectangle {
         Image {
             id: banner
             x: 16; y: 148
-            width: 343; height: 150
+            width: 343; height: 170
             clip: true
             source: Qt.resolvedUrl("assets/banner.png")
 
@@ -170,16 +174,26 @@ Rectangle {
                 boundsBehavior: ListView.StopAtBounds
 
                 model: [
-                    "assets/banner.png",
-                    "assets/banner.png",
-                    "assets/banner.png",
-                    "assets/banner.png",
-                    "assets/banner.png"
+                    { "src": "assets/banner.png", "judul": "Action" },
+                    { "src": "assets/banner.png", "judul": "Comedy" },
+                    { "src": "assets/banner.png", "judul": "Horror" },
+                    { "src": "assets/banner.png", "judul": "Drama" },
+                    { "src": "assets/banner.png", "judul": "Sci-Fi" }
                 ]
                 delegate: Image {
-                    width: 328
-                    height: 150
-                    source: Qt.resolvedUrl(modelData)
+                    width: 343
+                    height: 170
+                    source: Qt.resolvedUrl(modelData.src)
+
+                    MouseArea {
+                        id: bannerTouch
+                        anchors.fill: parent
+                        preventStealing: false
+                        onPressed: autoTimer.stop()
+                        onReleased: autoTimer.start()
+                        onCanceled: autoTimer.start()
+                        onClicked: myStack.push("HalamanPemutaran.qml", {"judul": modelData.judul})
+                    }
                 }
             }
 
@@ -205,6 +219,20 @@ Rectangle {
                 x: 149; y: 123
                 height: 5; width: 45
                 color: "transparent"
+
+                Timer {
+                    id: autoTimer
+                    interval: 5000
+                    running: true
+                    repeat: true
+                    onTriggered: {
+                        if (bannerList.currentIndex < bannerList.count - 1) {
+                            bannerList.currentIndex += 1
+                        } else {
+                            bannerList.currentIndex = 0
+                        }
+                    }
+                }
 
                 Row {
                     spacing: 5
@@ -272,11 +300,11 @@ Rectangle {
                 snapMode: ListView.NoSnap
 
                 model: [
-                    { name: "Alan Runner", img: "assets/image.png" },
-                    { name: "Bruno Earth", img: "assets/image_1.png" },
-                    { name: "Justin Bibir", img: "assets/image_2.png" },
-                    { name: "Blue Day", img: "assets/image_3.png" },
-                    { name: "Lagu Lain", img: "assets/image.png" }
+                    { penyanyi: "Alan Runner", img: "assets/image.png" },
+                    { penyanyi: "Bruno Earth", img: "assets/image_1.png" },
+                    { penyanyi: "Justin Bibir", img: "assets/image_2.png" },
+                    { penyanyi: "Blue Day", img: "assets/image_3.png" },
+                    { penyanyi: "Lagu Lain", img: "assets/image.png" }
                 ]
 
                 delegate: Item {
@@ -305,7 +333,7 @@ Rectangle {
                         anchors.topMargin: 8 * root.dp
                         anchors.horizontalCenter: albumArt.horizontalCenter
                         width: parent.width
-                        text: modelData.name
+                        text: modelData.penyanyi
                         color: "#161823"
                         font.family: "Inter"
                         font.pixelSize: 12 * root.dp
@@ -318,7 +346,7 @@ Rectangle {
                     MouseArea {
                         id: albumTouch
                         anchors.fill: parent
-                        onClicked: console.log("Play: " + modelData.name)
+                        onClicked: myStack.push("HalamanKategori.qml", {"kategori": "penyanyi", "penyanyi": modelData.penyanyi})
                     }
                 }
             }
@@ -374,9 +402,9 @@ Rectangle {
                 snapMode: ListView.NoSnap
 
                 model: [
-                    { name: "Pop", img: "assets/image_4.png" },
-                    { name: "Rock", img: "assets/image_5.png" },
-                    { name: "R&B", img: "assets/image_6.png" }
+                    { genre: "Pop", img: "assets/image_4.png" },
+                    { genre: "Rock", img: "assets/image_5.png" },
+                    { genre: "R&B", img: "assets/image_6.png" }
                 ]
 
                 delegate: Item {
@@ -397,7 +425,7 @@ Rectangle {
                     Text {
                         anchors.top: genreImage.bottom
                         width: parent.width
-                        text: modelData.name
+                        text: modelData.genre
                         color: "#000000"
                         font.family: "Inter"
                         font.pixelSize: 14 * root.dp
@@ -408,7 +436,7 @@ Rectangle {
                     MouseArea {
                         id: genreTouch
                         anchors.fill: parent
-                        onClicked: console.log("Buka Genre: " + modelData.name)
+                        onClicked: myStack.push("HalamanKategori.qml", {"kategori": "genre", "genre": modelData.genre})
                     }
                 }
             }
@@ -416,68 +444,44 @@ Rectangle {
     }
     Rectangle {
         id: navigationBar
+        z: 10
         width: parent.width
-        height: 60 * root.dp // Tinggi standar navigasi bawah
-        color: "#ffffff" // Background putih bersih
-
-        // INI KUNCINYA: Selalu tempel di dasar layar HP apa pun
+        height: 60 * root.dp
+        color: "#ffffff"
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 30 * root.dp
 
-        // Garis abu-abu sangat tipis di atasnya (pemanis)
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: "#f0f0f0"
-            anchors.top: parent.top
-        }
-
-        // Tempat menaruh Icon-icon kamu
         Row {
             anchors.fill: parent
 
-            // Tab 1: Home
-            Item {
-                width: parent.width / 4 // Bagi 4 karena ada 4 icon di gambarmu
-                height: parent.height
-                Icon_Tab_Discover { // Ganti dengan nama file icon Home kamu
-                    anchors.centerIn: parent
-                    scale: root.dp
-                }
-                MouseArea { anchors.fill: parent; onClicked: console.log("Home") }
-            }
+            Repeater {
+                model: [
+                    { name: "Utama",     icon: "components/Icon_Tab_Home.qml" },
+                    { name: "Kategori", icon: "components/Icon_Tab_Discover.qml" },
+                    { name: "Notifikasi",    icon: "components/Icon_3pt_Bell.qml" },
+                    { name: "Profile",  icon: "components/Icon_Person.qml" }
+                ]
 
-            // Tab 2: Compass/Discover
-            Item {
-                width: parent.width / 4
-                height: parent.height
-                Icon_Tab_Discover {
-                    anchors.centerIn: parent
-                    scale: root.dp
-                }
-                MouseArea { anchors.fill: parent; onClicked: console.log("Discover") }
-            }
+                delegate: Item {
+                    width: navigationBar.width / 4
+                    height: navigationBar.height
 
-            // Tab 3: Bell/Notif
-            Item {
-                width: parent.width / 4
-                height: parent.height
-                Icon_3pt_Bell {
-                    anchors.centerIn: parent
-                    scale: root.dp
-                }
-                MouseArea { anchors.fill: parent; onClicked: console.log("Notif") }
-            }
+                    Loader {
+                        source: "../" + modelData.icon
+                        anchors.centerIn: parent
+                        scale: root.dp
+                    }
 
-            // Tab 4: Profile
-            Item {
-                width: parent.width / 4
-                height: parent.height
-                Icon_Person {
-                    anchors.centerIn: parent
-                    scale: root.dp
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            let targetPage = "Halaman" + modelData.name + ".qml"
+                            if (myStack.currentItem.objectName !== modelData.name) {
+                                myStack.replace(targetPage)
+                            }
+                        }
+                    }
                 }
-                MouseArea { anchors.fill: parent; onClicked: console.log("Profile") }
             }
         }
     }

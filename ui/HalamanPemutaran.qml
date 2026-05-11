@@ -10,6 +10,10 @@ Rectangle {
     clip: true
     color: "#ffffff"
 
+    property string judul: ""
+    property string penyanyi: ""
+    property bool favorit: false
+
     Rectangle {
         id: map
 
@@ -129,28 +133,21 @@ Rectangle {
 
             Shape {
                 id: chevron_left_thin
+                x: 16 * root.dp; y: 9 * root.dp
+                width: 9.49; height: 16.86
 
-                x: 6.94
-                y: 3.57
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -10 * root.dp
 
-                height: 16.86
-                width: 9.49
+                    onClicked: {
+                        myStack.pop()
+                    }
+                }
 
                 ShapePath {
-                    id: chevron_left_thin_ShapePath0
-
                     fillColor: "#000000"
-                    fillRule: ShapePath.WindingFill
-                    joinStyle: ShapePath.MiterJoin
-                    strokeColor: "#00000000"
-                    strokeStyle: ShapePath.SolidLine
-                    strokeWidth: 0.50
-
-                    PathSvg {
-                        id: chevron_left_thin_ShapePath0_PathSvg0
-
-                        path: "M 2.338477373123169 8.429289817810059 L 9.348527908325195 1.4192390441894531 C 9.543790072202682 1.2239768654108047 9.543790131807327 0.9073939919471741 9.348527908325195 0.7121318578720093 L 8.782841682434082 0.14644651114940643 C 8.587579518556595 -0.048815563321113586 8.27099721133709 -0.04881548881530762 8.075735092163086 0.14644664525985718 L 0.1464465856552124 8.075736045837402 C -0.0488155335187912 8.270998179912567 -0.0488155335187912 8.587580502033234 0.1464465856552124 8.782842636108398 L 8.075735092163086 16.712133407592773 C 8.270997241139412 16.90739557147026 8.587580487132072 16.907393649220467 8.782842636108398 16.71213150024414 L 9.348527908325195 16.146446228027344 C 9.543790057301521 15.951184079051018 9.543790072202682 15.634601786732674 9.348527908325195 15.439339637756348 L 2.338477373123169 8.429289817810059 Z"
-                    }
+                    PathSvg { path: "M 2.338 8.429 L 9.348 1.419 C 9.543 1.223 9.543 0.907 9.348 0.712 L 8.782 0.146 C 8.587 -0.048 8.270 -0.048 8.075 0.146 L 0.146 8.075 C -0.048 8.270 -0.048 8.587 0.146 8.782 L 8.075 16.712 C 8.270 16.907 8.587 16.907 8.782 16.712 L 9.348 16.146 C 9.543 15.951 9.543 15.634 9.348 15.439 L 2.338 8.429 Z" }
                 }
             }
         }
@@ -256,7 +253,7 @@ Rectangle {
                                 horizontalAlignment: Text.AlignLeft
                                 lineHeight: 19.60
                                 lineHeightMode: Text.FixedHeight
-                                text: "Nama musik "
+                                text: musik
                                 textFormat: Text.PlainText
                                 verticalAlignment: Text.AlignVCenter
                                 wrapMode: Text.Wrap
@@ -781,12 +778,48 @@ Rectangle {
             wrapMode: Text.Wrap
         }
     }
-    Image {
-        id: tab_Bar
+    Rectangle {
+        id: navigationBar
+        z: 10
+        width: parent.width
+        height: 60 * root.dp
+        color: "#ffffff"
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 30 * root.dp
 
-        y: 733
+        Row {
+            anchors.fill: parent
 
-        source: Qt.resolvedUrl("assets/tab_Bar_1.png")
+            Repeater {
+                model: [
+                    { name: "Utama",     icon: "components/Icon_Tab_Home.qml" },
+                    { name: "Kategori", icon: "components/Icon_Tab_Discover.qml" },
+                    { name: "Notifikasi",    icon: "components/Icon_3pt_Bell.qml" },
+                    { name: "Profile",  icon: "components/Icon_Person.qml" }
+                ]
+
+                delegate: Item {
+                    width: navigationBar.width / 4
+                    height: navigationBar.height
+
+                    Loader {
+                        source: "../" + modelData.icon
+                        anchors.centerIn: parent
+                        scale: root.dp
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            let targetPage = "Halaman" + modelData.name + ".qml"
+                            if (myStack.currentItem.objectName !== modelData.name) {
+                                myStack.replace(targetPage)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     Text {
         id: favorit_3
