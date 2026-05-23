@@ -1,11 +1,15 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include "authmanager.h"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
+    AuthManager authManager;
+    engine.rootContext()->setContextProperty("authManager", &authManager);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,
