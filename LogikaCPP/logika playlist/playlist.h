@@ -11,21 +11,26 @@ struct song{
 };
 
 class Playlist{
-    public:
-    Playlist();
+    private:
+    std::list<song>lagu;
+    std::list<song>::iterator current;
+    json bank;
+    json playlist;
 
-    void tambah(std::string& kode);
-    void hapus(std::string& kode);
+    public:
+    std::string nama;
+    Playlist(const std::string& nama);
+
+    void tambah_lagu(const std::string& nama,const song& x);
+    void hapus_lagu(const std::string& nama,const std::string& kode);
+    void tambah_playlist(const std::string& nama);
 
     song* next();
     song* prev();
     song* sekarang();
-    const std::list<song>& getAll() const;
+    
+    void tampil() const;
+    int Size() const;
 
-    std::list<song>playlist;
-    std::list<song>::iterator current;
-    json bank;
-    json data_playlist;
-
-    void load();
+    const std::list<song>& getAll() const {return lagu;}
 };
