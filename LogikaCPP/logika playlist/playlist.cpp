@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-#include "json.hpp"
+#include "playlist.h"
 using json = nlohmann::json;
 //kodingan logika playlist (belum final)
 /*yang harus diperbaiki dan ditambah:
@@ -11,52 +11,87 @@ using json = nlohmann::json;
 -fungsi untuk nambah objek baru dari class Playlist untuk buat playlist baru
 -jangan lupa buat linked list untuk play otomatis musik di playlist*/
 
-struct lagu_plylst{
-    std::string judul;
-    std::string artist;
-};
+std::vector<Playlist>semuaPlaylist;
 
-class Playlist{
-    private:
-    std::vector<lagu_plylst>lagu; 
-    json bank;
+Playlist::Playlist(const std::string& nama){
+    std::ifstream bank_lagu("bank_lagu.json");
+    bank_lagu >> bank;
+    bank_lagu.close();
+    this->nama=nama;
     
-    public:
-    void tampilkan(){
-        for(const auto& musik:lagu){
-            if(lagu.empty()){
-                std:: cout << "Masukkan Lagu" << std::endl;
+}
+
+void Playlist::tambah_playlist(const std::string& nama_playlist){
+    std::ofstream file("daftar_playlist.json");
+    current=lagu.end();
+    playlist[nama_playlist];
+    file << playlist;  
+    file.close();
+
+    Playlist p(nama_playlist);
+    semuaPlaylist.push_back(p);
+}
+
+void Playlist::tambah_lagu(const std::string& nama_playlist, const song& x){
+    std::ofstream file("daftar_playlist.json");
+    for (Playlist& p:semuaPlaylist){
+        if (p.nama==nama_playlist){
+            for (const song& y : p.lagu){
+                if (y.kode==x.kode){return;}
             }
-            std::cout << musik.judul << " - " << musik.artist << std::endl;
+            p.lagu.push_back(x);
+            current=p.lagu.begin();
+
+            playlist[nama_playlist][x.kode]["judul"]=x.judul;
+            playlist[nama_playlist][x.kode]["artist"]=x.artist;
+            file << playlist.dump(4);
         }
     }
+    file.close();
+}
 
-    Playlist(){
-        tampilkan();
-        std::ifstream file("bank_lagu.json");
-        if(!file.is_open()){
-            std::cout<< "File Tidak Ditemukan" << std::endl;
-            return;
+void Playlist::hapus_lagu(const std::string& nama_playlist,const std::string& kode){
+    for(Playlist& p:semuaPlaylist){
+        if(p.nama==nama_playlist){
+            for (auto it = p.lagu.begin(); it != p.lagu.end(); ++it) {
+            if (it->kode == kode) {
+
+                if (it == p.current) {
+                    p.current = (std::next(it) != p.lagu.end())
+                            ? std::next(it)   
+                            : p.lagu.begin();   
+                }
+
+                p.lagu.erase(it);  
+
+                playlist[nama_playlist].erase(kode);
+                std::ofstream file("daftar_playlist.json");
+                file << playlist.dump(4);
+                file.close();
+                return;
+                }
+            }
         }
-        file >> bank;
-        file.close();
     }
+}
 
-    void tambah_lagu(const std::string& kode){
-        lagu_plylst musik;
+song* Playlist::sekarang(){
+    if(lagu.empty()||current==lagu.end()) return nullptr;
+    return &(*current);
+}
 
-        if(bank["Bank"].contains(kode)){
-            musik.judul= bank["Bank"][kode]["judul"];
-            musik.artist= bank["Bank"][kode]["artist"];
-            lagu.push_back(musik);
-        }
+song* Playlist::next(){
+    if(lagu.empty()) return nullptr;
 
-    }
-};
+    ++current;
+    if(current == lagu.end()) current=lagu.begin();
+    return &(*current);
+}
 
-int main(){
-    Playlist daftar1;
-    daftar1.tambah_lagu("tes003");
-    daftar1.tampilkan();
-    return 0;
+song* Playlist::prev(){
+    if(lagu.empty()) return nullptr;
+
+    if(current == lagu.begin()) current=lagu.end();
+    --current;
+    return &(*current);
 }
