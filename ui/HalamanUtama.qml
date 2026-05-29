@@ -6,12 +6,85 @@ import "../components"
 
 Rectangle {
     id: halaman_utama
+    objectName: "Utama"
 
     height: parent.height
     width: parent.width
-
     clip: true
-    color: "#ffffff"
+    anchors.fill: parent
+    color: "#F6F0FC"
+
+    ListModel { id: bannerModel }
+
+    ListModel { id: seringDiputarModel }
+
+    ListModel { id: searchResultModel }
+
+    property bool searchIsLoading: false
+
+    Timer {
+        id: searchDebounceTimer
+        interval: 400
+        repeat: false
+        onTriggered: {
+            let q = searchInput.text.trim()
+            if (q.length > 0) {
+                halaman_utama.searchIsLoading = true
+                let tipe = searchDropdown.activeFilter === "Artis" ? "artis" : "lagu"
+                DataManager.fetchSearchResults(root.globalIdToken, q, tipe)
+            }
+        }
+    }
+
+
+    Component.onCompleted: {
+        DataManager.fetchLatestSongsBanner(root.globalIdToken)
+        DataManager.fetchSeringDiputar(root.globalIdToken)
+    }
+
+    Connections {
+        target: DataManager
+        function onBannerClearRequested() {
+            bannerModel.clear()
+        }
+        function onSeringDiputarClearRequested() {
+            seringDiputarModel.clear()
+        }
+        function onLatestSongBannerFetched(songId, title, artist, imagePath) {
+            bannerModel.append({
+                                   "id_song": songId,
+                                   "judul": title,
+                                   "artist": artist,
+                                   "src": imagePath !== "" ? imagePath : "assets/banner.png"
+                               })
+        }
+        function onSeringDiputarItemFetched(songId, title, artist, imagePath) {
+            for (var i = 0; i < seringDiputarModel.count; i++) {
+                if (seringDiputarModel.get(i).id_song === songId) return
+            }
+            seringDiputarModel.append({
+                "id_song": songId,
+                "judul":   title,
+                "artist":  artist,
+                "src":     imagePath !== "" ? imagePath : "assets/musik_placeholder.png"
+            })
+        }
+        function onSearchResultClearRequested() {
+            searchResultModel.clear()
+        }
+        function onSearchResultItemFetched(songId, title, artist, imagePath) {
+            halaman_utama.searchIsLoading = false   // ← matikan loading
+            searchResultModel.append({
+                "id_song": songId,
+                "judul":   title,
+                "artist":  artist,
+                "src":     imagePath !== "" ? imagePath : "assets/musik_placeholder.png"
+            })
+            searchDropdown.visible = true
+        }
+    }
+
+
     Column {
         id: mainContent
         width: parent.width
@@ -21,53 +94,49 @@ Rectangle {
 
         Item {
             width: parent.width
-            height: 18 * root.dp
+            height: 30 * root.dp   // disesuaikan agar Column menghitung tinggi yang benar
+
             Rectangle {
                 id: searchContainer
-                anchors.horizontalCenter: parent.horizontalCenter
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: 16 * root.dp
                 anchors.rightMargin: 16 * root.dp
                 height: 30 * root.dp
-                color: "#f5f5f5"
+                color: "#EAD6FA"
                 radius: 8 * root.dp
 
                 RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: 12 * root.dp
-                    anchors.rightMargin: 12 * root.dp
+                    anchors.rightMargin: 8 * root.dp
                     spacing: 8 * root.dp
 
+                    // Ikon kaca pembesar
                     Item {
-                        Layout.preferredWidth: 24 * root.dp
-                        Layout.preferredHeight: 24 * root.dp
+                        Layout.preferredWidth: 20 * root.dp
+                        Layout.preferredHeight: 20 * root.dp
                         Layout.alignment: Qt.AlignVCenter
 
                         Shape {
-                            id: searchIcon
                             anchors.centerIn: parent
                             width: 16 * root.dp
                             height: 16 * root.dp
 
                             ShapePath {
-                                strokeColor: "#828282"
-                                strokeWidth: 2
-                                fillColor: "transparent"
-                                capStyle: ShapePath.RoundCap
-
+                                strokeColor: "#000000"; strokeWidth: 2
+                                fillColor: "transparent"; capStyle: ShapePath.RoundCap
                                 PathSvg { path: "M 16 8 C 16 12.4183 12.4183 16 8 16 C 3.5817 16 0 12.4183 0 8 C 0 3.5817 3.5817 0 8 0 C 12.4183 0 16 3.5817 16 8 Z" }
                             }
                             ShapePath {
-                                strokeColor: "#828282"
-                                strokeWidth: 2
-                                fillColor: "transparent"
-                                capStyle: ShapePath.RoundCap
+                                strokeColor: "#000000"; strokeWidth: 2
+                                fillColor: "transparent"; capStyle: ShapePath.RoundCap
                                 PathSvg { path: "M 14 14 L 18 18" }
                             }
                         }
                     }
 
+                    // Kolom input teks
                     TextInput {
                         id: searchInput
                         Layout.fillWidth: true
@@ -86,9 +155,63 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
+                        // NEW: picu debounce timer setiap kali teks berubah
+                        onTextChanged: {
+                            if (text.trim() === "") {
+                                halaman_utama.searchIsLoading = false
+                                searchResultModel.clear()
+                                searchDebounceTimer.stop()
+                                return
+                            }
+                            halaman_utama.searchIsLoading = true
+                            searchDebounceTimer.restart()
+                        }
+
+                        // Ganti onAccepted — jangan tutup dropdown, langsung fetch saja
                         onAccepted: {
-                            console.log("Mencari: " + text)
-                            searchInput.focus = false
+                            searchDebounceTimer.stop()
+                            let q = text.trim()
+                            if (q.length > 0) {
+                                halaman_utama.searchIsLoading = true
+                                let tipe = searchDropdown.activeFilter === "Artis" ? "artis" : "lagu"
+                                DataManager.fetchSearchResults(root.globalIdToken, q, tipe)
+                            }
+                        }
+                    }
+
+                    // NEW: Tombol ✕ — hanya muncul saat ada teks
+                    Item {
+                        Layout.preferredWidth: searchInput.text !== "" ? 28 * root.dp : 0
+                        Layout.preferredHeight: 28 * root.dp
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: searchInput.text !== ""
+                        clip: true
+
+                        // Lingkaran latar abu-abu
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 20 * root.dp
+                            height: 20 * root.dp
+                            radius: 10 * root.dp
+                            color: "#B0B0B0"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "✕"
+                                font.pixelSize: 10 * root.dp
+                                font.weight: Font.Bold
+                                color: "#FFFFFF"
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                searchInput.text = ""
+                                searchInput.focus = false
+                                searchResultModel.clear()
+                                searchDropdown.visible = false
+                            }
                         }
                     }
                 }
@@ -112,10 +235,10 @@ Rectangle {
 
                 Repeater {
                     model: [
-                        { name: "Favorit", icon: "Icon_Like.qml" },
-                        { name: "Riwayat", icon: "Icon_Watch_History.qml" },
-                        { name: "Diikuti", icon: "Icon_Person_Tick.qml" },
-                        { name: "Playlist", icon: "Icon_Lines_Horizontal_Decrease_Rectangle_LTR.qml" }
+                        { name: "Favorit"},
+                        { name: "Diikuti"},
+                        { name: "Playlist"},
+                        { name: "Pencarian"}
                     ]
 
                     delegate: Rectangle {
@@ -134,17 +257,11 @@ Rectangle {
                             anchors.centerIn: parent
                             spacing: 4 * root.dp
 
-                            Loader {
-                                source: "../" + modelData.icon
-                                anchors.verticalCenter: parent.verticalCenter
-                                scale: 0.75 * root.dp
-                            }
-
                             Text {
                                 text: modelData.name
                                 font.pixelSize: 12 * root.dp
                                 font.family: "Inter"
-                                color: "#1a1a1a"
+                                color: "#000000"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }
@@ -152,7 +269,15 @@ Rectangle {
                         MouseArea {
                             id: pillTouch
                             anchors.fill: parent
-                            onClicked: myStack.push("HalamanKategori.qml", {"kategori": modelData.name})
+                            onClicked: {
+                                if (modelData.name === "Playlist") {
+                                    myStack.push("HalamanPlaylist.qml")
+                                } else if (modelData.name === "Diikuti") {
+                                    myStack.push("HalamanDiikuti.qml")
+                                } else {
+                                    myStack.push("HalamanKategori.qml", {"kategori": modelData.name})
+                                }
+                            }
                         }
                     }
                 }
@@ -164,35 +289,60 @@ Rectangle {
             width: 343; height: 170
             clip: true
             source: Qt.resolvedUrl("assets/banner.png")
+            sourceSize.width: 343 * root.dp
+            sourceSize.height: 170 * root.dp
 
             ListView {
                 id: bannerList
                 anchors.fill: parent
                 orientation: ListView.Horizontal
                 snapMode: ListView.SnapOneItem
+                interactive: true
                 highlightRangeMode: ListView.StrictlyEnforceRange
                 boundsBehavior: ListView.StopAtBounds
+                model: bannerModel
 
-                model: [
-                    { "src": "assets/banner.png", "judul": "Action" },
-                    { "src": "assets/banner.png", "judul": "Comedy" },
-                    { "src": "assets/banner.png", "judul": "Horror" },
-                    { "src": "assets/banner.png", "judul": "Drama" },
-                    { "src": "assets/banner.png", "judul": "Sci-Fi" }
-                ]
-                delegate: Image {
+                delegate: Item {
                     width: 343
                     height: 170
-                    source: Qt.resolvedUrl(modelData.src)
+
+                    Image {
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectCrop
+                        source: model.src.startsWith("http") ? model.src : Qt.resolvedUrl(model.src)
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: 60
+                            gradient: Gradient {
+                                GradientStop { position: 0.0; color: "transparent" }
+                                GradientStop { position: 1.0; color: "#99000000" }
+                            }
+                        }
+
+                        Text {
+                            text: model.judul + " - " + model.artist
+                            x: 20
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: 16
+                            font.family: "Inter"
+                            font.pixelSize: 13 * root.dp
+                            font.weight: Font.Bold
+                            color: "#ffffff"
+                            width: parent.width - 40
+                            elide: Text.ElideRight
+                        }
+                    }
 
                     MouseArea {
-                        id: bannerTouch
                         anchors.fill: parent
-                        preventStealing: false
-                        onPressed: autoTimer.stop()
-                        onReleased: autoTimer.start()
-                        onCanceled: autoTimer.start()
-                        onClicked: myStack.push("HalamanPemutaran.qml", {"judul": modelData.judul})
+                        propagateComposedEvents: true
+                        onClicked: (mouse) => {
+                                       myStack.push("HalamanPemutaran.qml", { "song_id": model.id_song })
+                                       mouse.accepted = true
+                                   }
                     }
                 }
             }
@@ -223,7 +373,7 @@ Rectangle {
                 Timer {
                     id: autoTimer
                     interval: 5000
-                    running: true
+                    running: bannerList.count > 0
                     repeat: true
                     onTriggered: {
                         if (bannerList.currentIndex < bannerList.count - 1) {
@@ -237,7 +387,7 @@ Rectangle {
                 Row {
                     spacing: 5
                     Repeater {
-                        model: 5
+                        model: bannerList.count
                         Image { source: Qt.resolvedUrl("assets/_default.png") }
                     }
                 }
@@ -246,7 +396,6 @@ Rectangle {
                     id: selected
                     source: Qt.resolvedUrl("assets/selected.png")
                     x: bannerList.currentIndex * 10
-
                     Behavior on x {
                         NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
                     }
@@ -256,7 +405,7 @@ Rectangle {
         Item {
             id: seringDiputarSection
             width: parent.width
-            height: 120 * root.dp
+            height: 135 * root.dp
 
             Rectangle {
                 id: titleBar
@@ -279,8 +428,8 @@ Rectangle {
                     }
 
                     Icon_Chevron_Right_Slim_LTR {
-                        width: 14 * root.dp
-                        height: 14 * root.dp
+                        width: 24 * root.dp
+                        height: 24 * root.dp
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -290,51 +439,40 @@ Rectangle {
                 id: carousel
                 y: 38 * root.dp
                 width: parent.width
-                height: 140 * root.dp
+                height: 110 * root.dp
                 orientation: ListView.Horizontal
                 spacing: 12 * root.dp
                 leftMargin: 16 * root.dp
                 rightMargin: 16 * root.dp
                 clip: true
-
                 snapMode: ListView.NoSnap
-
-                model: [
-                    { penyanyi: "Alan Runner", img: "assets/image.png" },
-                    { penyanyi: "Bruno Earth", img: "assets/image_1.png" },
-                    { penyanyi: "Justin Bibir", img: "assets/image_2.png" },
-                    { penyanyi: "Blue Day", img: "assets/image_3.png" },
-                    { penyanyi: "Lagu Lain", img: "assets/image.png" }
-                ]
+                model: seringDiputarModel
 
                 delegate: Item {
                     width: 74 * root.dp
-                    height: 124 * root.dp
+                    height: 110 * root.dp
 
                     Image {
                         id: albumArt
                         width: 74 * root.dp
                         height: 74 * root.dp
-                        source: Qt.resolvedUrl(modelData.img)
+                        source: model.src.startsWith("http") ? model.src : Qt.resolvedUrl(model.src)
                         fillMode: Image.PreserveAspectCrop
+                        sourceSize.width: 74 * root.dp
+                        sourceSize.height: 74 * root.dp
                         anchors.horizontalCenter: parent.horizontalCenter
-
                         opacity: albumTouch.pressed ? 0.7 : 1.0
-
-                        Behavior on opacity {
-                            NumberAnimation { duration: 100 }
-                        }
+                        Behavior on opacity { NumberAnimation { duration: 100 } }
                     }
 
                     Text {
                         id: songText
-
                         anchors.top: albumArt.bottom
-                        anchors.topMargin: 8 * root.dp
+                        anchors.topMargin: 6 * root.dp
                         anchors.horizontalCenter: albumArt.horizontalCenter
                         width: parent.width
-                        text: modelData.penyanyi
-                        color: "#161823"
+                        text: model.judul
+                        color: "#000000"
                         font.family: "Inter"
                         font.pixelSize: 12 * root.dp
                         font.weight: Font.Medium
@@ -346,7 +484,9 @@ Rectangle {
                     MouseArea {
                         id: albumTouch
                         anchors.fill: parent
-                        onClicked: myStack.push("HalamanKategori.qml", {"kategori": "penyanyi", "penyanyi": modelData.penyanyi})
+                        onClicked: myStack.push("HalamanPemutaran.qml", {
+                                                    "song_id": model.id_song
+                                                })
                     }
                 }
             }
@@ -354,7 +494,7 @@ Rectangle {
         Item {
             id: genreSection
             width: parent.width
-            height: 180 * root.dp
+            height: 200 * root.dp
 
             Rectangle {
                 id: genreHeader
@@ -377,23 +517,22 @@ Rectangle {
                     }
 
                     Icon_Chevron_Right_Slim_LTR {
-                        width: 14 * root.dp
-                        height: 14 * root.dp
+                        width: 24 * root.dp
+                        height: 24 * root.dp
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
             }
             ListView {
                 id: genreList
-
                 anchors.top: genreHeader.bottom
                 anchors.topMargin: 8 * root.dp
-
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: 16 * root.dp
                 anchors.rightMargin: 16 * root.dp
-                height: 180 * root.dp
+                height: 170 * root.dp
+
                 orientation: ListView.Horizontal
                 spacing: 12 * root.dp
                 leftMargin: 16 * root.dp
@@ -402,9 +541,11 @@ Rectangle {
                 snapMode: ListView.NoSnap
 
                 model: [
-                    { genre: "Pop", img: "assets/image_4.png" },
-                    { genre: "Rock", img: "assets/image_5.png" },
-                    { genre: "R&B", img: "assets/image_6.png" }
+                    { genre: "Pop", img: "assets/genre_pop.png" },
+                    { genre: "Rock", img: "assets/genre_rock.png" },
+                    { genre: "R&B", img: "assets/genre_r&b.png" },
+                    { genre: "Jazz", img: "assets/genre_jazz.png" },
+                    { genre: "Lainnya", img: "assets/genre_lainnya.png" }
                 ]
 
                 delegate: Item {
@@ -417,20 +558,10 @@ Rectangle {
                         height: 148 * root.dp
                         source: Qt.resolvedUrl(modelData.img)
                         fillMode: Image.PreserveAspectCrop
-
+                        sourceSize.width: 148 * root.dp
+                        sourceSize.height: 148 * root.dp
                         opacity: genreTouch.pressed ? 0.7 : 1.0
                         Behavior on opacity { NumberAnimation { duration: 100 } }
-                    }
-
-                    Text {
-                        anchors.top: genreImage.bottom
-                        width: parent.width
-                        text: modelData.genre
-                        color: "#000000"
-                        font.family: "Inter"
-                        font.pixelSize: 14 * root.dp
-                        font.weight: Font.Normal
-                        horizontalAlignment: Text.AlignLeft
                     }
 
                     MouseArea {
@@ -443,42 +574,206 @@ Rectangle {
         }
     }
     Rectangle {
-        id: navigationBar
-        z: 10
-        width: parent.width
-        height: 60 * root.dp
-        color: "#ffffff"
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 30 * root.dp
+        id: searchDropdown
+        property string activeFilter: "Semua"
 
-        Row {
-            anchors.fill: parent
+        onActiveFilterChanged: {
+            let q = searchInput.text.trim()
+            if (q.length > 0) {
+                halaman_utama.searchIsLoading = true
+                let tipe = activeFilter === "Artis" ? "artis" : "lagu"
+                DataManager.fetchSearchResults(root.globalIdToken, q, tipe)
+            }
+        }
 
-            Repeater {
-                model: [
-                    { name: "Utama",     icon: "components/Icon_Tab_Home.qml" },
-                    { name: "Kategori", icon: "components/Icon_Tab_Discover.qml" },
-                    { name: "Notifikasi",    icon: "components/Icon_3pt_Bell.qml" },
-                    { name: "Profile",  icon: "components/Icon_Person.qml" }
-                ]
+        // ✅ FIX 2: tampil otomatis selama ada teks, tidak perlu di-toggle manual
+        visible: searchInput.text.trim().length > 0
+
+        z: 100
+        anchors.top:         parent.top
+        anchors.topMargin:   (30 + 20 + 30 + 4) * root.dp
+        anchors.left:        parent.left
+        anchors.leftMargin:  16 * root.dp
+        anchors.right:       parent.right
+        anchors.rightMargin: 16 * root.dp
+
+        height: filterRow.height
+                + (searchResultModel.count > 0
+                   ? searchResultModel.count * 56 * root.dp
+                   : 48 * root.dp)
+
+        color:  "white"
+        radius: 10 * root.dp
+
+        Rectangle {
+            anchors.fill: parent; anchors.margins: -1
+            radius: parent.radius + 1; color: "transparent"
+            border.width: 1; border.color: "#25000000"; z: -1
+        }
+        Rectangle {
+            anchors.fill: parent; anchors.margins: -4; anchors.topMargin: -2
+            radius: parent.radius + 3; color: "#12000000"; z: -2
+        }
+
+        // ── Chip filter ─────────────────────────────────────────────────────────
+        Item {
+            id: filterRow
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 36 * root.dp
+
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: 10 * root.dp
+                spacing: 6 * root.dp
+
+                Repeater {
+                    model: ["Semua", "Lagu", "Artis"]
+                    delegate: Rectangle {
+                        property bool isActive: searchDropdown.activeFilter === modelData
+                        height: 24 * root.dp
+                        width:  chipLabel.implicitWidth + 14 * root.dp
+                        radius: 12 * root.dp
+                        color:  isActive ? "#8B5CF6" : "#F0E6FD"
+                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                        Text {
+                            id: chipLabel
+                            anchors.centerIn: parent
+                            text:           modelData
+                            font.family:    "Inter"
+                            font.pixelSize: 11 * root.dp
+                            font.weight:    isActive ? Font.SemiBold : Font.Normal
+                            color:          isActive ? "white" : "#6B21C8"
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: searchDropdown.activeFilter = modelData
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left; anchors.right: parent.right
+                height: 1; color: "#F0F0F0"
+            }
+        }
+
+        Item {
+            anchors.top:    filterRow.bottom
+            anchors.left:   parent.left
+            anchors.right:  parent.right
+            anchors.bottom: parent.bottom
+
+            // Loading
+            Text {
+                anchors.centerIn: parent
+                text: "Mencari..."
+                font.family: "Inter"; font.pixelSize: 13 * root.dp; color: "#AAAAAA"
+                visible: halaman_utama.searchIsLoading && searchResultModel.count === 0
+            }
+
+            // Tidak ditemukan
+            Text {
+                anchors.centerIn: parent
+                text: "Tidak ada hasil untuk \"" + searchInput.text.trim() + "\""
+                font.family: "Inter"; font.pixelSize: 12 * root.dp; color: "#BBBBBB"
+                width: parent.width - 24 * root.dp
+                horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
+                visible: !halaman_utama.searchIsLoading && searchResultModel.count === 0
+            }
+
+            ListView {
+                id: searchResultList
+                anchors.fill: parent
+                anchors.margins: 4 * root.dp
+                model: searchResultModel
+                clip: true
+                interactive: false
 
                 delegate: Item {
-                    width: navigationBar.width / 4
-                    height: navigationBar.height
+                    width: searchResultList.width
+                    height: 56 * root.dp
 
-                    Loader {
-                        source: "../" + modelData.icon
-                        anchors.centerIn: parent
-                        scale: root.dp
+                    Rectangle {
+                        visible: index < searchResultModel.count - 1
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left; anchors.right: parent.right
+                        anchors.leftMargin: 8 * root.dp; anchors.rightMargin: 8 * root.dp
+                        height: 1; color: "#F0F0F0"
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent; radius: 6 * root.dp
+                        color: itemTouch.pressed ? "#F3E8FF" : "transparent"
+                        Behavior on color { ColorAnimation { duration: 80 } }
+                    }
+
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left; anchors.right: parent.right
+                        anchors.leftMargin: 8 * root.dp; anchors.rightMargin: 8 * root.dp
+                        spacing: 12 * root.dp
+
+                        Rectangle {
+                            width: 40 * root.dp; height: 40 * root.dp
+                            radius: 6 * root.dp; color: "#EAD6FA"; clip: true
+                            Image {
+                                anchors.fill: parent
+                                source: model.src.startsWith("http") ? model.src : Qt.resolvedUrl(model.src)
+                                fillMode: Image.PreserveAspectCrop
+                                sourceSize.width: 40 * root.dp; sourceSize.height: 40 * root.dp
+                            }
+                        }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 3 * root.dp
+                            width: parent.width - 40 * root.dp - 12 * root.dp
+
+                            Text {
+                                width: parent.width; text: model.judul
+                                font.family: "Inter"; font.pixelSize: 13 * root.dp
+                                font.weight: Font.Medium; color: "#111111"; elide: Text.ElideRight
+                            }
+
+                            Row {
+                                spacing: 4 * root.dp
+                                Rectangle {
+                                    height: 14 * root.dp
+                                    width: badgeText.implicitWidth + 6 * root.dp
+                                    radius: 3 * root.dp; color: "#EAD6FA"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Text {
+                                        id: badgeText
+                                        anchors.centerIn: parent
+                                        text: searchDropdown.activeFilter === "Artis" ? "Artis" : "Lagu"
+                                        font.family: "Inter"; font.pixelSize: 9 * root.dp
+                                        font.weight: Font.Medium; color: "#7C3AED"
+                                    }
+                                }
+                                Text {
+                                    text: model.artist
+                                    font.family: "Inter"; font.pixelSize: 11 * root.dp
+                                    color: "#888888"; elide: Text.ElideRight
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.parent.width - 14 * root.dp - 4 * root.dp
+                                }
+                            }
+                        }
                     }
 
                     MouseArea {
+                        id: itemTouch
                         anchors.fill: parent
                         onClicked: {
-                            let targetPage = "Halaman" + modelData.name + ".qml"
-                            if (myStack.currentItem.objectName !== modelData.name) {
-                                myStack.replace(targetPage)
-                            }
+                            // ✅ FIX 1: tangkap dulu sebelum apapun berubah
+                            let songId = model.id_song
+                            myStack.push("HalamanPemutaran.qml", {"song_id": songId})
                         }
                     }
                 }
