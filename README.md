@@ -8,3 +8,4 @@ Anggota :
 </ul>
 <br>
 Judul : Just Play
+APK   : https://github.com/addinsyahidn/Just_Play/releases/tag/v1.0.0
