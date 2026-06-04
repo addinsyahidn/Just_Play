@@ -7,5 +7,5 @@ Anggota :
   <li>251401074	Rizqa Faiza Raihanah</li>
 </ul>
 <br>
-Judul : Just Play
+Judul : Just Play <br>
 APK   : https://github.com/addinsyahidn/Just_Play/releases/tag/v1.0.0
